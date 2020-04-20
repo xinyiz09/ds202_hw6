@@ -1,0 +1,72 @@
+---
+title: "ds202_hw6"
+author: "Xinyi Zhu"
+date: "4/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+
+```
+
+```{r}
+BIS <-readxl::read_xlsx('/Users/jessie/Desktop/ds202/ds202_hw6/KIB.xlsx', sheet='Best in show', skip = 5)
+BISF<-readxl::read_xlsx('/Users/jessie/Desktop/ds202/ds202_hw6/KIB.xlsx', sheet='Best in show full sheet', skip = 2)
+
+```
+
+```{r}
+BIS <- BIS[-1,]
+BISF <- BISF[-1,]
+BISF <- BISF %>% rename("Dog breed"="Sources - see bottom right")
+BISF <- BISF %>% rename("INTELLIGENCE ranking_2" = "1 INTELLIGENCE (TRAINABILITY) ranking")
+BISF <- BISF %>% rename("INTELLIGENCE ranking_1" = `INTELLIGENCE (TRAINABILITY) ranking`)
+BIS <- BIS %>% rename('popularity ranking' = `popularity ranking (1-173, 1 = most popular)`)
+
+```
+
+
+```{r}
+NewBIS <- BIS %>% select(`Dog breed`, category, `popularity ranking`,`intelligence ranking`,`intelligence category`,`size category`)
+
+NewBISF <- BISF %>% select(`Dog breed`,category, `datadog score`, `POPULARITY IN US...6`,`POPULARITY IN US...7`, `INTELLIGENCE ranking_1`,`INTELLIGENCE ranking_2`,`POPULAR RATING`,`size category`,`intelligence category` )
+
+```
+
+```{r}
+JoinData <- inner_join(NewBIS, NewBISF, by=c("Dog breed"))
+JoinData <- JoinData %>% select(-c(category.y, `size category.y`, `intelligence category.y`))
+JoinData$`intelligence category.x`[JoinData$`intelligence category.x` == "no data"] <- NA
+JoinData$`popularity ranking` <- as.numeric(JoinData$`popularity ranking`)
+
+```
+
+```{r}
+JoinData$`intelligence category.x` <- as.factor(JoinData$`intelligence category.x`)
+JoinData$`size category.x` <- as.factor(JoinData$`size category.x`)
+JoinData$`size category.x` <- factor(JoinData$`size category.x`, levels = c("small", "medium", "large"))
+JoinData <- JoinData %>% rename(`size of dog` = `size category.x`)
+JoinData <- JoinData %>% rename(`type of dog` = `category.x`)
+JoinData <- JoinData %>% rename(`intelligence of dog` = `intelligence category.x`)
+
+
+```
+
+```{r}
+ggplot(JoinData %>% na.omit(), aes(x=`datadog score`, 
+                                   y=`popularity ranking`, color = `type of dog`, 
+                                   size = `size of dog`, 
+                                   shape = `intelligence of dog`))+
+  scale_shape_manual(values = 1:nlevels(JoinData$`intelligence of dog`)) +geom_point(position='jitter')+ylim(c(1,100))+geom_text(aes(label = `Dog breed`), hjust=0, vjust=0,na.rm = TRUE,check_overlap = TRUE, size=6)+ggtitle("Top Dogs")+xlab("data score")+ylab("popularity")
+
+
+
+```
+
